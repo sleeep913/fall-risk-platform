@@ -1,0 +1,7 @@
+# PoseC3D engineering baseline. Install after requirements-train.txt.
+# MMAction2 1.2.0 requires mmcv < 2.2.0. PoseC3D does not need MMCV CUDA ops,
+# so mmcv-lite avoids compiling an incompatible extension on the training server.
+-r requirements-train.txt
+mmengine==0.10.5
+mmcv-lite==2.1.0
+mmaction2==1.2.0

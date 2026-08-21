@@ -34,12 +34,15 @@ data/samples/**
 !data/samples/.gitkeep
 data/offline-videos/**
 !data/offline-videos/.gitkeep
+data/processed/
 logs/
+work_dirs/
 
 # Local datasets and trained artifacts
 dataset/**
 !dataset/.gitkeep
 !dataset/README.md
+algorithm/third_party/
 checkpoints/
 weights/
 *.ckpt
