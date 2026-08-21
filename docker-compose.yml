@@ -1,0 +1,160 @@
+name: fall-risk-platform
+
+services:
+  mysql:
+    image: mysql:8.4
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      TZ: Asia/Shanghai
+    command: ["--character-set-server=utf8mb4", "--collation-server=utf8mb4_unicode_ci"]
+    volumes:
+      - mysql-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p$${MYSQL_ROOT_PASSWORD} --silent"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+    networks: [platform]
+
+  redis:
+    image: redis:7.4-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+    networks: [platform]
+
+  minio:
+    image: minio/minio:RELEASE.2025-04-22T22-12-26Z
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ACCESS_KEY}
+      MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY}
+    volumes:
+      - minio-data:/data
+    ports:
+      - "9001:9001"
+    networks: [platform]
+
+  api:
+    build:
+      context: ./services/api
+      target: base
+    restart: unless-stopped
+    environment:
+      APP_ENV: ${APP_ENV:-development}
+      APP_NAME: ${APP_NAME:-Fall Risk Platform}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      JWT_SECRET: ${JWT_SECRET}
+      ACCESS_TOKEN_EXPIRE_MINUTES: ${ACCESS_TOKEN_EXPIRE_MINUTES:-15}
+      REFRESH_TOKEN_EXPIRE_DAYS: ${REFRESH_TOKEN_EXPIRE_DAYS:-7}
+      COOKIE_SECURE: ${COOKIE_SECURE:-false}
+      INITIAL_ADMIN_USERNAME: ${INITIAL_ADMIN_USERNAME}
+      INITIAL_ADMIN_PASSWORD: ${INITIAL_ADMIN_PASSWORD}
+      DATABASE_URL: ${DATABASE_URL}
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
+      MINIO_ENDPOINT: ${MINIO_ENDPOINT:-minio:9000}
+      MINIO_SECURE: ${MINIO_SECURE:-false}
+      HEALTH_CHECK_TIMEOUT_SECONDS: ${HEALTH_CHECK_TIMEOUT_SECONDS:-2}
+      EZVIZ_API_BASE_URL: ${EZVIZ_API_BASE_URL:-https://open.ys7.com}
+      EZVIZ_APP_KEY: ${EZVIZ_APP_KEY:-}
+      EZVIZ_APP_SECRET: ${EZVIZ_APP_SECRET:-}
+      EZVIZ_REQUEST_TIMEOUT_SECONDS: ${EZVIZ_REQUEST_TIMEOUT_SECONDS:-10}
+      EZVIZ_TOKEN_REFRESH_SKEW_SECONDS: ${EZVIZ_TOKEN_REFRESH_SKEW_SECONDS:-600}
+      EZVIZ_TOKEN_LOCK_TIMEOUT_SECONDS: ${EZVIZ_TOKEN_LOCK_TIMEOUT_SECONDS:-15}
+      EZVIZ_DEVICE_SYNC_PAGE_SIZE: ${EZVIZ_DEVICE_SYNC_PAGE_SIZE:-50}
+      EZVIZ_PACKAGE_CODE_01: ${EZVIZ_PACKAGE_CODE_01:-}
+      EZVIZ_PACKAGE_CODE_02: ${EZVIZ_PACKAGE_CODE_02:-}
+      EZVIZ_PACKAGE_CODE_03: ${EZVIZ_PACKAGE_CODE_03:-}
+      EZVIZ_PACKAGE_CODE_04: ${EZVIZ_PACKAGE_CODE_04:-}
+      EZVIZ_PACKAGE_CODE_05: ${EZVIZ_PACKAGE_CODE_05:-}
+      EZVIZ_COUPON_REDEEMED: ${EZVIZ_COUPON_REDEEMED:-false}
+      OFFLINE_VIDEO_ROOT: ${OFFLINE_VIDEO_ROOT:-/data/offline-videos}
+      OFFLINE_VIDEO_CACHE_ROOT: ${OFFLINE_VIDEO_CACHE_ROOT:-/data/offline-video-cache}
+      OFFLINE_PLAYBACK_TICKET_EXPIRE_SECONDS: ${OFFLINE_PLAYBACK_TICKET_EXPIRE_SECONDS:-1800}
+      OFFLINE_VIDEO_TRANSCODE_TIMEOUT_SECONDS: ${OFFLINE_VIDEO_TRANSCODE_TIMEOUT_SECONDS:-300}
+    volumes:
+      - ./data/offline-videos:/data/offline-videos:ro
+      - ./data/local/offline-video-cache:/data/offline-video-cache
+    ports:
+      - "8000:8000"
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_started
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=2)",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+    networks: [platform]
+
+  web:
+    build:
+      context: ./apps/web
+      target: runtime
+    restart: unless-stopped
+    ports:
+      - "8080:80"
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1/"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+    networks: [platform]
+
+  api-test:
+    profiles: [test]
+    build:
+      context: ./services/api
+      target: test
+    environment:
+      APP_ENV: test
+      JWT_SECRET: test-secret-that-is-longer-than-thirty-two-characters
+      DATABASE_URL: sqlite+aiosqlite:///./test.db
+      AUTO_CREATE_TABLES: "true"
+      REDIS_URL: redis://127.0.0.1:1/0
+      MINIO_ENDPOINT: 127.0.0.1:1
+      OFFLINE_VIDEO_ROOT: /tmp/offline-videos
+      OFFLINE_VIDEO_CACHE_ROOT: /tmp/offline-video-cache
+    networks: [platform]
+
+  web-test:
+    profiles: [test]
+    build:
+      context: ./apps/web
+      target: test
+    networks: [platform]
+
+networks:
+  platform:
+    driver: bridge
+
+volumes:
+  mysql-data:
+  redis-data:
+  minio-data:

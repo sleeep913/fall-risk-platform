@@ -1,0 +1,52 @@
+# Local secrets
+.env
+.env.*
+!.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+.venv/
+
+# Node
+node_modules/
+dist/
+coverage/
+
+# IDE and OS
+.idea/
+.vscode/
+!.vscode/extensions.json
+.DS_Store
+Thumbs.db
+
+# Runtime data
+data/mysql/
+data/minio/
+data/redis/
+data/local/
+data/samples/**
+!data/samples/.gitkeep
+data/offline-videos/**
+!data/offline-videos/.gitkeep
+logs/
+
+# Local datasets and trained artifacts
+dataset/**
+!dataset/.gitkeep
+!dataset/README.md
+checkpoints/
+weights/
+*.ckpt
+*.pt
+*.pth
+*.onnx
+*.engine
+
+# Temporary inspection artifacts
+tmp/

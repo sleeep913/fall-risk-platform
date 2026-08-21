@@ -1,0 +1,31 @@
+{
+  "name": "@fall-risk/web",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 0.0.0.0",
+    "build": "vue-tsc -b && vite build",
+    "preview": "vite preview",
+    "typecheck": "vue-tsc -b",
+    "test:unit": "vitest run"
+  },
+  "dependencies": {
+    "@element-plus/icons-vue": "^2.3.2",
+    "axios": "^1.11.0",
+    "element-plus": "^2.10.5",
+    "pinia": "^3.0.3",
+    "vue": "^3.5.18",
+    "vue-router": "^4.5.1"
+  },
+  "devDependencies": {
+    "@types/node": "^24.2.0",
+    "@vitejs/plugin-vue": "^5.2.1",
+    "@vue/test-utils": "^2.4.6",
+    "happy-dom": "^18.0.1",
+    "typescript": "~5.8.3",
+    "vite": "^6.1.0",
+    "vitest": "^3.2.4",
+    "vue-tsc": "^3.0.4"
+  }
+}

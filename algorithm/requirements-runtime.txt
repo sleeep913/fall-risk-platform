@@ -1,0 +1,4 @@
+# Frozen for the pre-built MMCV 2.2.0 torch2.4/cu121 wheel used by A1.
+# Install this file with the PyTorch CUDA 12.1 index documented in README.md.
+torch==2.4.1
+torchvision==0.19.1
